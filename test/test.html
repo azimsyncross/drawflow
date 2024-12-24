@@ -1,0 +1,74 @@
+function arrangeAllNodes() {
+    const data = editor.drawflow.drawflow.Home.data;
+    const nodes = Object.values(data);
+
+    // Check if there are nodes to arrange
+    if (nodes.length === 0) return;
+
+    // Constants for layout
+    const startX = 100;  // Starting X position
+    const startY = 100;  // Starting Y position
+    const horizontalGap = 400;  // Horizontal gap between columns
+    const verticalGap = 150;    // Vertical gap between nodes in same column
+    const canvasHeight = document.getElementById("drawflow").clientHeight;
+
+    // Group nodes by their process level
+    const levelGroups = {};
+    nodes.forEach(node => {
+        const level = node.data.processName || 'unknown';
+        if (!levelGroups[level]) {
+            levelGroups[level] = [];
+        }
+        levelGroups[level].push(node);
+    });
+
+    // Sort levels to ensure consistent ordering (level-1, level-2, etc.)
+    const sortedLevels = Object.keys(levelGroups).sort((a, b) => {
+        const aNum = parseInt(a.split('-')[1]) || 999;
+        const bNum = parseInt(b.split('-')[1]) || 999;
+        return aNum - bNum;
+    });
+
+    // Arrange nodes by level (in columns)
+    sortedLevels.forEach((level, columnIndex) => {
+        const nodesInLevel = levelGroups[level];
+        
+        // Calculate total height needed for this column
+        const totalNodesHeight = nodesInLevel.length * 100; // Assuming each node is ~100px high
+        const totalGapsHeight = (nodesInLevel.length - 1) * verticalGap;
+        const totalColumnHeight = totalNodesHeight + totalGapsHeight;
+        
+        // Calculate starting Y position to center the column vertically
+        const columnStartY = Math.max(startY, (canvasHeight - totalColumnHeight) / 2);
+        
+        // Arrange nodes in this level vertically
+        nodesInLevel.forEach((node, rowIndex) => {
+            // For each level (column), x position increases by horizontalGap
+            const newX = startX + (columnIndex * horizontalGap);
+            // In each column, nodes are arranged vertically with even spacing
+            const newY = columnStartY + (rowIndex * (100 + verticalGap)); // 100px for node height
+
+            // Update node position
+            const nodeId = node.id;
+            editor.drawflow.drawflow[editor.module].data[nodeId].pos_x = newX;
+            editor.drawflow.drawflow[editor.module].data[nodeId].pos_y = newY;
+
+            // Update DOM element position
+            const nodeElement = document.getElementById(`node-${nodeId}`);
+            if (nodeElement) {
+                nodeElement.style.left = `${newX}px`;
+                nodeElement.style.top = `${newY}px`;
+            }
+
+            // Update connections
+            editor.updateConnectionNodes(nodeId);
+        });
+    });
+
+    // Center the view on the arranged nodes
+    setTimeout(() => {
+        centerCanvas();
+    }, 100);
+
+    console.log("Arranged nodes by levels:", levelGroups);
+}

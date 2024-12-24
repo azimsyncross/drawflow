@@ -1,0 +1,282 @@
+ 
+
+     
+<div class="drawflow_top_bar" style=" display: flex; 
+z-index: 999; 
+padding: 1rem; 
+padding-left: 2rem;
+padding-right: 2rem; 
+justify-content: flex-start; 
+align-items: center; 
+width: 100%; 
+height: 4rem; 
+color: #ffffff; 
+background-color: #000000; 
+position: absolute;">
+ 
+<div class="toggleButtonDiv">
+    <div id="toggleWidthDiv" [ngClass]="isPanelVisible ? 'toggleWidthDivShow' : 'toggleWidthDivhide'" class="toggleWidthDiv">
+                <h2>Process</h2>
+    </div>
+    <button class="toggleButton"  (click)="togglePanel()">
+       <mat-icon>
+           {{ isPanelVisible ? 'chevron_left' : 'chevron_right' }}
+       </mat-icon>
+    </button>
+</div>
+     
+
+<div class="ETSInputDiv">
+         
+    <input [(ngModel)]="orderId" class="getETSInput ETSInputItem " id="orderId" name="orderId" #tableName type="text" placeholder="Order id" value="7184060A" required />
+
+    <input [(ngModel)]="styleNo" class="getETSInput ETSInputItem" name="styleNo" #tableName id='styleNo' placeholder="line" type="text" value="7184060A" required />
+
+
+    <input [(ngModel)]="processGroup" class="getETSInput ETSInputItem" name="processGroup" #tableName type="text" id="process" placeholder="Process Group" required>
+
+
+</div>
+
+<ul style="display: none;">
+    <li (click)="editor.changeModule('Home'); changeModule($event);" class="selected">Home</li>
+    <li (click)="editor.changeModule('Other'); changeModule($event);">Other Module</li>
+</ul>
+     
+     
+
+     <div class="saveBtnDiv">
+         
+         <button style="color:#6fe25f;" class="Savebtn" matTooltip="Info about the action" *ngIf="allowDropFlag" [matTooltipShowDelay]="1000" [matTooltipHideDelay]="2000" (click)="saveFlow()">
+             <mat-icon style="margin-top: 2px;">save_alt</mat-icon>
+             <h6 style="margin-left: 6px;margin-top: 5px;height: 20px;padding: 0px;z-index: 2000;float: right;font-size: 15px; font-weight: normal;">Save</h6>
+         </button>
+
+
+    <mat-icon [matMenuTriggerFor]="menu">more_vert</mat-icon>
+         <mat-menu #menu="matMenu">
+             <button mat-menu-item>
+                 <div (click)="export()">
+                     <mat-icon style="margin-right: 10px; color:#1B3FAB">eject</mat-icon>Export
+                 </div>
+             </button>
+             <button mat-menu-item>
+                 <div (click)="clear()">
+                     <mat-icon style="margin-right: 10px; color:#9b1c31">highlight_off</mat-icon>Clear
+                 </div>
+             </button>
+             <input type="file" style="display:none" class="file-input" (input)="addfile($event)" #fileUpload accept=".json">
+             <button mat-menu-item color="primary" (click)="fileUpload.click()">
+                 <mat-icon style="margin-right: 10px; color:#1B3FAB">get_app</mat-icon> Import
+             </button>
+
+         </mat-menu>
+
+
+
+
+
+     </div>
+</div>
+
+
+<div class="wrapper" [class.hidden]="!isPanelVisible">
+ 
+<div class="col" style="background-color:#9b9c9d; z-index:0; margin-top:50px">
+     <div class="drag-drawflow" draggable="true" (dragstart)="drag($event)" data-node="start_process">
+         <div id="circle1">
+         </div>
+         <div class="card">
+            <div class="drawflow-node start_process selected" style="top: 219px; left: 95px; color: black;"><div class="inputs"></div><div class="drawflow_content_node">
+                  <div>
+                    <div class="title-box">
+                        <p id="ProcessNameText"> Start Process </p>
+                        <i class="material-icons editProcessName" style="float: left; padding: 4px; text-align: center; line-height: 40px;">edit</i>
+                        <i class="material-icons button-ets">playlist_add</i><br><br>
+                    </div>
+                    <div class="box">
+                    </div>
+                  </div>
+                </div><div class="outputs"><div class="output output_1"></div></div>
+            </div>
+         </div>
+     </div>
+
+
+     <div class="drag-drawflow" draggable="true" (dragstart)="drag($event)" data-node="middle_process">
+         <div id="circle1">
+
+         </div>
+         <div id="circle0">
+
+         </div>
+         <div class="card">
+
+            <div class="drawflow-node start_process selected" style="top: 219px; left: 95px; color: black;">
+                <div class="inputs"></div>
+                <div class="drawflow_content_node">
+                <div>
+                    <div class="title-box">
+                        <p id="ProcessNameText"> Middle Process </p>
+                        <i class="material-icons editProcessName" style="float: left; padding: 4px; text-align: center; line-height: 40px;">edit</i>
+                        <i class="material-icons button-ets">playlist_add</i><br><br>
+                    </div>
+                    <div class="box">
+                    </div>
+                  </div>
+                </div>
+                <div class="outputs"><div class="output output_1"></div></div>
+            </div>
+                
+             <!--<div class="title-box" style="border-bottom: 1px solid #bbb; height:50px;">-->
+             <!--    <input style="width:120px; margin-left: 5px;  pointer-events:none;" type="text" df-db-dbname id="process_input" value="" placeholder="Process Name">-->
+             <!--    <i class="material-icons button-ets" style="float:right;padding:14px;">playlist_add</i><br><br>-->
+             <!--</div>-->
+             <!--<div class="box" style="height: 40px;">-->
+             <!--</div>-->
+         </div>
+     </div>
+     
+     <div class="drag-drawflow" draggable="true" (dragstart)="drag($event)" data-node="intermediate_qc">
+         <div id="circle1">
+
+         </div>
+         <div id="circle0">
+
+         </div>
+         <div class="card">
+
+            <div class="title-box" style="border-bottom: 1px solid #bbb; height:50px;"><span style="color:black">Intermediate QC</span>
+                 <i class="material-icons button-ets" style="float:right;padding:14px;">playlist_add</i><br><br>
+             </div>
+         </div>
+     </div>
+     
+     <!--<div class="drag-drawflow" draggable="true" (dragstart)="drag($event)" data-node="qc_process">-->
+     <!--    <div id="circle0">-->
+     <!--    </div>-->
+     <!--    <div class="card">-->
+     <!--        <div class="title-box" style="border-bottom: 1px solid #bbb; height:50px;"><span style="color:black">QC</span>-->
+     <!--            <i class="material-icons button-ets" style="float:right;padding:14px;">playlist_add</i><br><br>-->
+     <!--        </div>-->
+     <!--    </div>-->
+     <!--</div>-->
+     
+     <!--<div class="drag-drawflow" draggable="true" (dragstart)="drag($event)" data-node="process_group">-->
+     <!--    <div id="circle1">-->
+     <!--    </div>-->
+     <!--    <div class="card">-->
+     <!--       <div class="drawflow-node start_process selected" style="top: 219px; left: 95px; color: black;"><div class="inputs"></div><div class="drawflow_content_node">-->
+     <!--             <div>-->
+     <!--               <div class="title-box" style="background: #CCC; color: red;">-->
+     <!--                   <p id="ProcessGroupText">Process Group</p>-->
+     <!--                   <i class="material-icons editProcessGroupName" style="float: left; padding: 4px; text-align: center; line-height: 40px;">edit</i>-->
+     <!--               </div>-->
+     <!--               <div class="box">-->
+     <!--               </div>-->
+     <!--             </div>-->
+     <!--           </div><div class="outputs"><div class="output output_1"></div></div>-->
+     <!--       </div>-->
+     <!--    </div>-->
+     <!--</div>-->
+
+    <div class="drag-drawflow" draggable="true" (dragstart)="drag($event)" data-node="iron_qc">
+        <div id="circle0">
+        </div>
+        <div class="card">
+            <div class="title-box" style="border-bottom: 1px solid #bbb; height:50px;"><span style="color:black">QC</span>
+                <i class="material-icons button-ets" style="float:right;padding:14px;">playlist_add</i><br><br>
+            </div>
+        </div>
+    </div>
+    
+    <!--<div class="drag-drawflow" draggable="true" (dragstart)="drag($event)" data-node="style_part_process">-->
+    <!--     <div id="circle1">-->
+    <!--     </div>-->
+    <!--    <div id="circle0">-->
+
+    <!--     </div>-->
+    <!--     <div class="card">-->
+    <!--        <div class="drawflow-node start_process selected" style="top: 219px; left: 95px; color: black;">-->
+    <!--            <div class="inputs"></div>-->
+    <!--            <div class="drawflow_content_node">-->
+    <!--              <div>-->
+    <!--                <div class="title-box">-->
+    <!--                    <p id="ProcessNameText"> Style Part Process </p>-->
+    <!--                    <i class="material-icons editProcessName" style="float: left; padding: 4px; text-align: center; line-height: 40px;">edit</i>-->
+    <!--                    <i class="material-icons button-ets">playlist_add</i><br><br>-->
+    <!--                </div>-->
+    <!--                <div class="box">-->
+    <!--                </div>-->
+    <!--              </div>-->
+    <!--            </div><div class="outputs"><div class="output output_1"></div></div>-->
+    <!--        </div>-->
+    <!--     </div>-->
+    <!-- </div>-->
+     
+              <div class="drag-drawflow" draggable="true" (dragstart)="drag($event)" data-node="style_part_process">
+         <div id="circle1">
+
+         </div>
+         <div id="circle0">
+
+         </div>
+         <div class="card">
+
+            <div class="drawflow-node start_process selected" style="top: 219px; left: 95px; color: black;">
+                <div class="inputs"></div>
+                <div class="drawflow_content_node">
+                <div>
+                    <div class="title-box">
+                        <p id="ProcessNameText"> Style Part Process </p>
+                        <i class="material-icons editProcessName" style="float: left; padding: 4px; text-align: center; line-height: 40px;">edit</i>
+                        <i class="material-icons button-ets">playlist_add</i><br><br>
+                    </div>
+                    <div class="box">
+                    </div>
+                  </div>
+                </div>
+                <div class="outputs"><div class="output output_1"></div></div>
+            </div>
+                
+             <!--<div class="title-box" style="border-bottom: 1px solid #bbb; height:50px;">-->
+             <!--    <input style="width:120px; margin-left: 5px;  pointer-events:none;" type="text" df-db-dbname id="process_input" value="" placeholder="Process Name">-->
+             <!--    <i class="material-icons button-ets" style="float:right;padding:14px;">playlist_add</i><br><br>-->
+             <!--</div>-->
+             <!--<div class="box" style="height: 40px;">-->
+             <!--</div>-->
+         </div>
+     </div>
+
+     
+
+     <!--<div class="drag-drawflow" draggable="true" (dragstart)="drag($event)" data-node="intermediate_qc">-->
+     <!--    <span>Intermediate QC</span>-->
+     <!--</div>-->
+     <!--<div class="drag-drawflow" draggable="true" (dragstart)="drag($event)" data-node="google">-->
+     <!--  <i class="fab fa-google-drive"></i><span> QC Process</span>-->
+     <!--</div>-->
+
+</div>
+
+<div class="col-right"  style="width:100%; left: 270px;
+    top: 0px;
+    position: absolute;
+    bottom: 0px;
+    z-index: 0;">
+    <div id="drawflow"  (drop)="drop($event)" (dragover)="allowDrop($event)" style="top:10px;z-index:0">
+        <div class="btn-lock" style="width: 45px;height: 34px;float: left;margin-left: 10px;z-index: 10;">
+            <mat-icon id="lock" (click)="editor.editor_mode='fixed'; changeMode('lock');">lock_open</mat-icon>
+            <mat-icon id="unlock" (click)="editor.editor_mode='edit'; changeMode('unlock');" style="display:none;">lock_outline</mat-icon>
+        </div>
+        <div class="bar-zoom">
+            <mat-icon (click)="editor.zoom_out()">zoom_out</mat-icon>
+            <!--<mat-icon (click)="editor.zoom_reset()">replay</mat-icon>-->
+            <mat-icon (click)="editor.zoom_in()">zoom_in</mat-icon>
+            <mat-icon (click)="resetToTopLeftfunc(editor)" title="Reset to Top Left">refresh</mat-icon>
+        </div>
+    </div>
+</div>
+</div>
+
+

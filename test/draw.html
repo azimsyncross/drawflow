@@ -1,0 +1,79 @@
+<div class="topbar" style="height:50px; background-color: #5b5e5f;position:relative;z-index:100; width: 100%;">
+         
+    <div class="flex">
+        
+       
+        
+
+        <input [(ngModel)]="orderId" class="getETSInput" style="background-color:#7e7d7d; color:white; border:none; margin-left:100px; width: 25%;" id="orderId" name="orderId" #tableName type="text" placeholder="Order id" value="7184060A" required />
+
+        <input [(ngModel)]="styleNo" class="getETSInput" style="background-color:#7e7d7d; color:white; border:none;width: 25%;" name="styleNo" #tableName id='styleNo' placeholder="line" type="text" value="7184060A" required />
+
+
+
+
+        <input [(ngModel)]="processGroup" class="getETSInput" style="background-color:#7e7d7d; color:white; border:none;width: 25%;" name="processGroup" #tableName type="text" id="process" placeholder="Process Group" required>
+
+
+       
+
+
+    </div>
+
+    <ul style="display:none">
+        <li (click)="editor.changeModule('Home'); changeModule($event);" class="selected">Home</li>
+        <li (click)="editor.changeModule('Other'); changeModule($event);">Other Module</li>
+    </ul>
+    
+    
+
+    <div style="margin-right: 50px;
+   float: right;
+   margin-top: 10px; ">
+        <button class="panel-toggle-btn" (click)="togglePanel()">
+           <mat-icon>{{ isPanelVisible ? 'chevron_left' : 'chevron_right' }}</mat-icon>
+       </button>
+
+        <button style="color:#6fe25f;" class="Savebtn" matTooltip="Info about the action" *ngIf="allowDropFlag" [matTooltipShowDelay]="1000" [matTooltipHideDelay]="2000" (click)="saveFlow()">
+            <mat-icon style="margin-top: 2px;">save_alt</mat-icon>
+            <h6 style="margin-left: 6px;
+   margin-top: 5px;
+   height: 20px;
+   padding: 0px;
+   z-index: 2000;
+   float: right;font-size: 15px; font-weight: normal;">Save</h6>
+        </button>
+
+
+   <mat-icon [matMenuTriggerFor]="menu" style="    color: white;
+   margin: 5px;
+   top: 10px;
+   position: absolute;
+   right: 30px;">more_vert</mat-icon>
+        <mat-menu #menu="matMenu">
+            <button mat-menu-item>
+                <div (click)="export()">
+                    <mat-icon style="margin-right: 10px; color:#1B3FAB">eject</mat-icon>Export
+                </div>
+            </button>
+            <button mat-menu-item>
+                <div (click)="clear()">
+                    <mat-icon style="margin-right: 10px; color:#9b1c31">highlight_off</mat-icon>Clear
+                </div>
+            </button>
+            <input type="file" style="display:none" class="file-input" (input)="addfile($event)" #fileUpload accept=".json">
+            <button mat-menu-item color="primary" (click)="fileUpload.click()">
+                <mat-icon style="margin-right: 10px; color:#1B3FAB">get_app</mat-icon> Import
+            </button>
+
+        </mat-menu>
+
+
+
+
+
+    </div>
+
+
+
+</div>

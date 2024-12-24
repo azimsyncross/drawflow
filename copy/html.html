@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!-- Previous head section remains the same -->
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/drawflow/dist/drawflow.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/drawflow/dist/drawflow.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Drawflow Example</title>
+  </head>
+  <body class="flex">
+    <!-- Sidebar -->
+    <div class="bg-gray-200 w-[20%] h-[100vh] p-4 flex flex-col items-center">
+      <!-- Previous buttons remain the same -->
+      <div class="flex flex-col gap-4 w-full">
+        <div
+          class="bg-blue-500 text-white p-2 rounded-md w-full cursor-move"
+          draggable="true"
+          ondragstart="dragNode(event)"
+          data-node="startingnode2"
+          data-inputs="0"
+          data-outputs="2"
+          data-name="Starting Node 2"
+          onclick="addCustomNode(0, 2, 'Starting Node 2','level-1')"
+        >
+          Starting Node 2
+        </div>
+
+        <div
+          class="bg-blue-500 text-white p-2 rounded-md w-full cursor-move"
+          draggable="true"
+          ondragstart="dragNode(event)"
+          data-node="output node"
+          data-inputs="1"
+          data-outputs="0"
+          data-name="Output Node"
+          onclick="addCustomNode(1, 0, 'Output Node','level-4')"
+        >
+          Output Node
+        </div>
+
+        <div
+          class="bg-blue-500 text-white p-2 rounded-md w-full cursor-move"
+          draggable="true"
+          ondragstart="dragNode(event)"
+          data-node="starting"
+          data-inputs="0"
+          data-outputs="1"
+          data-name="Starting Node"
+          onclick="addCustomNode(0, 1, 'Starting Node','level-1')"
+        >
+          Starting node
+        </div>
+
+        <div
+          class="bg-green-500 text-white p-2 rounded-md w-full cursor-move"
+          draggable="true"
+          ondragstart="dragNode(event)"
+          data-node="processing"
+          data-inputs="1"
+          data-outputs="1"
+          data-name="Processing Node"
+          onclick="addCustomNode(1, 1, 'Processing Node','level-2')"
+        >
+          Processing node (1in, 2out)
+        </div>
+
+        <div
+          class="bg-purple-500 text-white p-2 rounded-md w-full cursor-move"
+          draggable="true"
+          ondragstart="dragNode(event)"
+          data-node="multi"
+          data-inputs="1"
+          data-outputs="1"
+          data-name="Multi Node"
+          onclick="addCustomNode(1, 1, 'Multi Node','level-3')"
+        >
+          Multi node (2in, 2out)
+        </div>
+      </div>
+
+      <!-- Import JSON Section -->
+      <div class="mt-4 w-full">
+        <label class="block text-gray-700 text-sm font-bold mb-2">
+          Import JSON
+        </label>
+        <input
+          type="file"
+          id="jsonFileInput"
+          accept=".json"
+          class="hidden"
+          onchange="handleFileSelect(event)"
+        />
+        <button
+          onclick="document.getElementById('jsonFileInput').click()"
+          class="bg-yellow-600 text-white p-2 rounded-md w-full mb-4"
+        >
+          Choose JSON File
+        </button>
+      </div>
+
+      <!-- Save and Export Controls -->
+      <div class="mt-4 flex flex-col gap-2 w-full">
+        <button
+          class="bg-green-600 text-white p-2 rounded-md w-full"
+          onclick="saveToLocalStorage()"
+        >
+          Save to Local Storage
+        </button>
+        <button
+          class="bg-blue-600 text-white p-2 rounded-md w-full"
+          onclick="exportToJson()"
+        >
+          Export as JSON
+        </button>
+      </div>
+
+      <!-- Zoom Controls -->
+      <div class="mt-4 flex flex-col gap-2 w-full">
+        <button
+          class="bg-gray-700 text-white p-2 rounded-md w-full"
+          onclick="zoomIn()"
+        >
+          Zoom In (+)
+        </button>
+        <button
+          class="bg-gray-700 text-white p-2 rounded-md w-full"
+          onclick="zoomOut()"
+        >
+          Zoom Out (-)
+        </button>
+        <button
+          class="bg-gray-700 text-white p-2 rounded-md w-full"
+          onclick="resetZoom()"
+        >
+          Reset Zoom (R)
+        </button>
+      </div>
+
+      <!-- Update the canvas control buttons section -->
+      <div class="mt-4 flex flex-col gap-2 w-full">
+        <button
+          class="bg-gray-700 text-white p-2 rounded-md w-full"
+          onclick="resetToTopLeft()"
+        >
+          Reset to Top-Left
+        </button>
+        <button
+          class="bg-gray-700 text-white p-2 rounded-md w-full"
+          onclick="centerCanvas()"
+        >
+          Center Canvas
+        </button>
+        <button
+          class="bg-gray-700 text-white p-2 rounded-md w-full"
+          onclick="selectedNodeId && centerOnNode(selectedNodeId)"
+        >
+          Center on Selected Node
+        </button>
+
+        <button id="arrange-nodes-btn" onclick="arrangeAllNodes()">Arrange All Nodes</button>
+      </div>
+    </div>
+
+    <!-- Canvas -->
+    <div
+      class="w-[80%] h-[100vh] overflow-hidden"
+      ondrop="drop(event)"
+      ondragover="allowDrop(event)"
+    >
+      <div id="drawflow" class="w-full h-full"></div>
+    </div>
+
+    <script>
+      // First, move all function definitions outside of the DOMContentLoaded event
+      let editor;
+      let selectedNodeId = null;
+      let copiedNodeData = null;
+      const ZOOM_STEP = 0.1;
+      const MIN_ZOOM = 0.1;
+      const MAX_ZOOM = 2;
+      const STORAGE_KEY = "drawflow-data";
+      let nodeDragging = false;
+      let selectedNode = null;
+      let nodeOffset = { x: 0, y: 0 };
+      let editorDragging = false;
+      let dragStartPosition = { x: 0, y: 0 };
+      let cursorPosition = { x: 0, y: 0 };
+
+      // Define translate_to function that will be added to editor after initialization
+      function initializeTranslateTo(editor) {
+        editor.translate_to = function (x, y, zoom) {
+          this.canvas_x = x;
+          this.canvas_y = y;
+          let storedZoom = zoom || this.zoom;
+          this.zoom = 1;
+          this.precanvas.style.transform =
+            "translate(" +
+            this.canvas_x +
+            "px, " +
+            this.canvas_y +
+            "px) scale(" +
+            storedZoom +
+            ")";
+          this.zoom = storedZoom;
+          this.zoom_last_value = storedZoom;
+
+          // Return the translation values for debugging
+          return {
+            x: this.canvas_x,
+            y: this.canvas_y,
+            zoom: this.zoom,
+          };
+        };
+      }
+
+      function centerCanvas() {
+        if (!editor) return;
+
+        // Get canvas dimensions
+        const canvasWidth = document.getElementById("drawflow").clientWidth;
+        const canvasHeight = document.getElementById("drawflow").clientHeight;
+
+        // Get all nodes to calculate the flow bounds
+        const nodes = editor?.drawflow?.drawflow?.Home?.data || {};
+
+        if (Object.keys(nodes).length === 0) {
+          // If no nodes, just center the view
+          editor.translate_to(0, 0, editor.zoom);
+          return;
+        }
+
+        // Calculate bounds of all nodes
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+
+        Object.values(nodes).forEach((node) => {
+          minX = Math.min(minX, node.pos_x);
+          minY = Math.min(minY, node.pos_y);
+          maxX = Math.max(maxX, node.pos_x + 200); // 200 is approximate node width
+          maxY = Math.max(maxY, node.pos_y + 100); // 100 is approximate node height
+        });
+
+        // Calculate center of the flow
+        const flowWidth = maxX - minX;
+        const flowHeight = maxY - minY;
+        const flowCenterX = minX + flowWidth / 2;
+        const flowCenterY = minY + flowHeight / 2;
+
+        // Calculate translation needed to center the flow
+        const translateX = -(flowCenterX - canvasWidth / 2);
+        const translateY = -(flowCenterY - canvasHeight / 2);
+
+        // Apply translation
+        editor.translate_to(translateX, translateY, editor.zoom);
+
+        console.log("Center translation:", { translateX, translateY });
+      }
+
+      function centerOnNode(nodeId) {
+        if (!editor) return;
+        const node = editor.getNodeFromId(nodeId);
+        if (!node) return;
+
+        const canvasWidth = document.getElementById("drawflow").clientWidth;
+        const canvasHeight = document.getElementById("drawflow").clientHeight;
+
+        const x = -(node.pos_x - canvasWidth / 2 + 100);
+        const y = -(node.pos_y - canvasHeight / 2 + 50);
+
+        editor.translate_to(x, y, editor.zoom);
+      }
+
+      // Update the DOMContentLoaded event handler
+      document.addEventListener("DOMContentLoaded", () => {
+        // Initialize editor
+        editor = new Drawflow(document.getElementById("drawflow"));
+
+        // Set editor options
+        editor.reroute = true;
+        editor.reroute_fix_curvature = true;
+        editor.curvature = 0.5;
+        editor.reroute_curvature_start_end = 0.5;
+        editor.reroute_curvature = 0.5;
+        editor.reroute_width = 6;
+        editor.line_path = 5;
+        editor.force_first_input = false;
+        editor.editor_mode = "edit";
+
+        // Initialize the editor
+        editor.start();
+        
+        // Add connection events
+        editor.on("connectionStart", function (position) {
+          console.log("Connection started:", position);
+        });
+
+        editor.on("connectionCancel", function () {
+          console.log("Connection cancelled");
+        });
+
+        editor.on("connectionCreated", function (connection) {
+          console.log("Connection created:", connection);
+        });
+
+        editor.on("connectionRemoved", function (connection) {
+          console.log("Connection removed:", connection);
+        });
+
+        // Add translate_to method to editor
+        initializeTranslateTo(editor);
+
+        // Load saved data
+        loadFromLocalStorage();
+
+        // Add event listeners
+        editor.on("translate", function (transform) {
+          console.log("Transform:", transform);
+        });
+
+        editor.on("zoom", function (zoom) {
+          console.log("Zoom:", zoom);
+        });
+
+        editor.on("nodeSelected", function (nodeId) {
+          selectedNodeId = nodeId;
+          const node = editor.getNodeFromId(selectedNodeId);
+          console.log("Selected node:", node);
+          console.log("Node Selected:", nodeId);
+        });
+
+        editor.on("nodeUnselected", () => {
+          selectedNodeId = null;
+          console.log("Node unselected");
+        });
+
+        editor.on("keydown", function (event) {
+          if (event.ctrlKey && event.key === "s") {
+            event.preventDefault();
+            saveToLocalStorage();
+          }
+          if (event.key === "c") {
+            copyNode();
+          }
+          if (event.key === "v") {
+            pasteNode();
+          }
+          if (event.key === "r") {
+            resetToTopLeft();
+          }
+          if (selectedNodeId && event.key === "f") {
+            centerOnNode(selectedNodeId);
+          }
+        });
+
+        editor.on("mouseMove", function (position) {
+          // position contains x and y coordinates
+          cursorPosition = position;
+
+          // console.log("Cursor position:", position.x, position.y);
+
+          if (nodeDragging && selectedNode) {
+            const zoom = editor.zoom;
+
+            const x = (position.x - nodeOffset.x - editor.canvas_x) / zoom;
+            const y = (position.y - nodeOffset.y - editor.canvas_y) / zoom;
+
+            const nodeId = selectedNode.id.slice(5);
+            editor.drawflow.drawflow.Home.data[nodeId].pos_x = x;
+            editor.drawflow.drawflow.Home.data[nodeId].pos_y = y;
+
+            selectedNode.style.left = x + "px";
+            selectedNode.style.top = y + "px";
+            editor.updateConnectionNodes(nodeId);
+          } else if (editorDragging) {
+            editor.canvas_x = position.x - dragStartPosition.x;
+            editor.canvas_y = position.y - dragStartPosition.y;
+            console.log("editorDragging", editor.canvas_x, editor.canvas_y);
+            editor.precanvas.style.transform = `translate(${editor.canvas_x}px, ${editor.canvas_y}px) scale(${editor.zoom})`;
+          }
+        });
+
+        // Update mouse event handlers
+        document
+          .getElementById("drawflow")
+          .addEventListener("mousedown", function (e) {
+            // Check if it's a left click
+            if (e.button !== 0) return;
+
+            // Check if clicking on input/output point
+            if (e.target.classList.contains('input') || e.target.classList.contains('output')) {
+              // Don't start node dragging when clicking connection points
+              return;
+            }
+
+            const nodeElement = e.target.closest(".drawflow-node");
+            const headerElement = e.target.closest(".node-header");
+
+            // Only allow dragging when clicking the header
+            if (nodeElement && headerElement) {
+              nodeDragging = true;
+              selectedNode = nodeElement;
+              const nodeId = nodeElement.id.slice(5);
+              const nodeData = editor.drawflow.drawflow.Home.data[nodeId];
+
+              nodeOffset = {
+                x: e.clientX - (nodeData.pos_x * editor.zoom + editor.canvas_x),
+                y: e.clientY - (nodeData.pos_y * editor.zoom + editor.canvas_y),
+              };
+
+              e.stopPropagation();
+            } else if (!e.target.closest(".drawflow-node")) {
+              // Editor panning
+              editorDragging = true;
+              dragStartPosition = {
+                x: e.clientX - editor.canvas_x,
+                y: e.clientY - editor.canvas_y,
+              };
+            }
+          });
+
+        document
+          .getElementById("drawflow")
+          .addEventListener("mouseup", function () {
+            nodeDragging = false;
+            editorDragging = false;
+            selectedNode = null;
+          });
+
+        // Update editor options
+        editor.editor_mode = "edit";
+        editor.draggable_inputs = true;
+
+        // Configure editor for connections
+        editor.reroute = true;
+        editor.reroute_fix_curvature = true;
+        editor.curvature = 0.5;
+        editor.force_first_input = false;
+
+        // Add connection events
+        editor.on("connectionStart", function (position) {
+          console.log("Connection started:", position);
+        });
+
+        editor.on("connectionCancel", function () {
+          console.log("Connection cancelled");
+        });
+
+        editor.on("connectionCreated", function (connection) {
+          console.log("Connection created:", connection);
+        });
+
+        editor.on("connectionRemoved", function (connection) {
+          console.log("Connection removed:", connection);
+        });
+      });
+
+      // Copy-paste functions
+      function copyNode() {
+    try {
+        // Check if there's a selected node
+        if (!selectedNodeId) {
+            console.warn("No node selected for copying");
+            return false;
+        }
+
+        // Safely get node data
+        const node = editor.getNodeFromId(selectedNodeId);
+        if (!node) {
+            console.warn("Could not find node with ID:", selectedNodeId);
+            return false;
+        }
+
+        // Create a deep copy of node data
+        copiedNodeData = {
+            name: node.name || 'Unnamed Node',
+            inputs: node.inputs ? Object.keys(node.inputs).length : 0,
+            outputs: node.outputs ? Object.keys(node.outputs).length : 0,
+            data: {
+                value: node.data.value || "",
+                processName: node.data.processName || ""
+            },
+            class: node.class || 'custom-node',
+            html: node.html || createNodeHtml(node.name, node.inputs, node.outputs)
+        };
+
+        console.log("Successfully copied node:", {
+            nodeId: selectedNodeId,
+            data: copiedNodeData
+        });
+        return true;
+
+    } catch (error) {
+        console.error("Error copying node:", error);
+        return false;
+    }
+}
+
+
+function arrangeAllNodes() {
+    const data = editor.drawflow.drawflow.Home.data;
+    const nodes = Object.values(data);
+
+    if (nodes.length === 0) return;
+
+    // Layout constants
+    const startX = 50;
+    const startY = 50;
+    const verticalGap = 200;
+    const horizontalGap = 300;
+    const nodeWidth = 200;
+    const nodeHeight = 100;
+
+    const nodesData = {};
+    const startNodes = [];
+    const endNodes = [];
+    const middleNodes = [];
+    let maxColumn = 0;
+
+    // Store initial positions to maintain stability
+    const initialPositions = {};
+    nodes.forEach(node => {
+        initialPositions[node.id] = {
+            x: node.pos_x,
+            y: node.pos_y
+        };
+    });
+
+    // Enhanced node info structure with position memory
+    nodes.forEach(node => {
+        const inputCount = Object.keys(node.inputs || {}).length;
+        const outputCount = Object.keys(node.outputs || {}).length;
+
+        const nodeInfo = {
+            id: node.id,
+            inputConnections: [],
+            outputConnections: [],
+            column: inputCount === 0 ? 0 : undefined,
+            hasConnectedOutputs: false,
+            initialPosition: initialPositions[node.id],
+            weight: 0 // Track node's importance in the graph
+        };
+
+        nodesData[node.id] = nodeInfo;
+
+        if (inputCount === 0) startNodes.push(node.id);
+        else if (outputCount === 0) endNodes.push(node.id);
+        else middleNodes.push(node.id);
+
+        // Record connections and calculate node weight
+        Object.entries(node.outputs || {}).forEach(([_, output]) => {
+            const connections = output.connections || [];
+            const connectedNodes = connections.map(conn => conn.node);
+            nodeInfo.outputConnections.push(...connectedNodes);
+            nodeInfo.weight += connections.length; // Increase weight based on output connections
+
+            if (connections.length > 0) {
+                nodeInfo.hasConnectedOutputs = true;
+            }
+            connections.forEach(conn => {
+                if (nodesData[conn.node]) {
+                    nodesData[conn.node].inputConnections.push(node.id);
+                    nodesData[conn.node].weight++; // Increase weight based on input connections
+                }
+            });
+        });
+    });
+
+    function assignColumns() {
+        const processed = new Set();
+        const queue = [...startNodes.map(id => ({ id, column: 0 }))];
+        
+        while (queue.length > 0) {
+            const { id, column } = queue.shift();
+            if (processed.has(id)) continue;
+
+            nodesData[id].column = column;
+            maxColumn = Math.max(maxColumn, column);
+            processed.add(id);
+
+            // Sort output connections by weight to process more important nodes first
+            const sortedOutputs = [...nodesData[id].outputConnections]
+                .sort((a, b) => nodesData[b].weight - nodesData[a].weight);
+
+            for (const outputId of sortedOutputs) {
+                if (!processed.has(outputId)) {
+                    // Check if all inputs for this node have been processed
+                    const allInputsProcessed = nodesData[outputId].inputConnections
+                        .every(inputId => processed.has(inputId));
+
+                    if (allInputsProcessed) {
+                        queue.push({ id: outputId, column: column + 1 });
+                    }
+                }
+            }
+        }
+
+        // Handle end nodes
+        endNodes.forEach(nodeId => {
+            if (!processed.has(nodeId)) {
+                nodesData[nodeId].column = maxColumn + 1;
+            }
+        });
+    }
+
+    function stabilizeNodeOrder(columnNodes, prevPositions) {
+        // Sort based on a combination of connectivity and previous positions
+        return columnNodes.sort((aId, bId) => {
+            const nodeA = nodesData[aId];
+            const nodeB = nodesData[bId];
+            
+            // Calculate position scores based on connections
+            const aConnScore = calculateConnectionScore(nodeA, prevPositions);
+            const bConnScore = calculateConnectionScore(nodeB, prevPositions);
+
+            // If connection scores are significantly different, use them
+            if (Math.abs(aConnScore - bConnScore) > 0.5) {
+                return aConnScore - bConnScore;
+            }
+
+            // If scores are similar, maintain previous relative positions
+            const aPrevPos = nodeA.initialPosition?.y ?? 0;
+            const bPrevPos = nodeB.initialPosition?.y ?? 0;
+            return aPrevPos - bPrevPos;
+        });
+    }
+
+    function calculateConnectionScore(node, prevPositions) {
+        let score = 0;
+        const connectedNodes = [...node.inputConnections, ...node.outputConnections];
+        
+        if (connectedNodes.length === 0) return 0;
+
+        // Calculate average position of connected nodes
+        const positions = connectedNodes
+            .map(id => prevPositions[id]?.y ?? 0)
+            .filter(pos => pos !== 0);
+
+        if (positions.length > 0) {
+            score = positions.reduce((a, b) => a + b, 0) / positions.length;
+        }
+
+        // Adjust score based on node weight
+        score *= (1 + node.weight * 0.1);
+        
+        return score;
+    }
+
+    function positionNodes() {
+        const columns = new Map();
+        const currentPositions = {};
+
+        // Initial grouping by columns
+        Object.values(nodesData).forEach(node => {
+            if (!columns.has(node.column)) {
+                columns.set(node.column, []);
+            }
+            columns.get(node.column).push(node.id);
+        });
+
+        // Position nodes column by column
+        [...columns.keys()].sort().forEach(columnIndex => {
+            let columnNodes = columns.get(columnIndex);
+            
+            // Stabilize node ordering within column
+            columnNodes = stabilizeNodeOrder(columnNodes, currentPositions);
+
+            const columnX = startX + (columnIndex * (nodeWidth + horizontalGap));
+            const totalHeight = columnNodes.length * (nodeHeight + verticalGap) - verticalGap;
+            let currentY = Math.max(startY, (window.innerHeight - totalHeight) / 2);
+
+            columnNodes.forEach(nodeId => {
+                if (editor.drawflow.drawflow.Home.data[nodeId]) {
+                    // Store new position
+                    currentPositions[nodeId] = {
+                        x: columnX,
+                        y: currentY
+                    };
+
+                    // Update only if position has significantly changed
+                    const prevPos = nodesData[nodeId].initialPosition;
+                    const shouldUpdate = !prevPos || 
+                        Math.abs(prevPos.x - columnX) > 10 || 
+                        Math.abs(prevPos.y - currentY) > 10;
+
+                    if (shouldUpdate) {
+                        editor.drawflow.drawflow.Home.data[nodeId].pos_x = columnX;
+                        editor.drawflow.drawflow.Home.data[nodeId].pos_y = currentY;
+
+                        const nodeElement = document.getElementById(`node-${nodeId}`);
+                        if (nodeElement) {
+                            nodeElement.style.left = `${columnX}px`;
+                            nodeElement.style.top = `${currentY}px`;
+                        }
+                    }
+
+                    currentY += nodeHeight + verticalGap;
+                }
+            });
+        });
+
+        // Update connections only once at the end
+        setTimeout(() => {
+            [...startNodes, ...middleNodes, ...endNodes].forEach(nodeId => {
+                editor.updateConnectionNodes(`node-${nodeId}`);
+            });
+        }, 50);
+    }
+
+    assignColumns();
+    positionNodes();
+
+    setTimeout(centerCanvas, 100);
+}
+
+
+// function arrangeAllNodes() {
+//     const data = editor.drawflow.drawflow.Home.data;
+//     const nodes = Object.values(data);
+
+//     // Check if there are nodes to arrange
+//     if (nodes.length === 0) return;
+
+//     // Layout constants
+//     const startX = 50;
+//     const startY = 50;
+//     const verticalGap = 100;
+//     const horizontalGap = 300;
+//     const nodeWidth = 200;  
+//     const nodeHeight = 100; 
+//     const canvasHeight = document.getElementById("drawflow").clientHeight;
+
+//     // Store all node data and connections
+//     const nodesData = {};
+//     const nodeColumns = new Map();
+
+//     // Map to store connections and organize node levels (columns)
+//     nodes.forEach(node => {
+//         nodesData[node.id] = {
+//             id: node.id,
+//             inputConnections: [],
+//             outputConnections: []
+//         };
+
+//         // Get all output connections
+//         Object.entries(node.outputs || {}).forEach(([outputId, output]) => {
+//             (output.connections || []).forEach(conn => {
+//                 nodesData[node.id].outputConnections.push(conn.node);
+//                 if (nodesData[conn.node]) {
+//                     nodesData[conn.node].inputConnections.push(node.id);
+//                 }
+//             });
+//         });
+//     });
+
+//     // Recursive function to assign columns to nodes
+//     function assignColumn(nodeId, column = 0, visited = new Set()) {
+//         if (visited.has(nodeId)) return;
+//         visited.add(nodeId);
+
+//         const node = nodesData[nodeId];
+//         if (!node) return;
+
+//         const inputMaxColumn = Math.max(
+//             -1,
+//             ...node.inputConnections.map(inputId => nodeColumns.get(inputId) ?? -1)
+//         );
+
+//         const newColumn = Math.max(column, inputMaxColumn + 1);
+//         nodeColumns.set(nodeId, newColumn);
+
+//         // Process output nodes
+//         node.outputConnections.forEach(outputId => {
+//             assignColumn(outputId, newColumn + 1, visited);
+//         });
+//     }
+
+//     // Find start nodes (nodes with no inputs) and assign columns
+//     Object.keys(nodesData).forEach(nodeId => {
+//         if (nodesData[nodeId].inputConnections.length === 0) {
+//             assignColumn(nodeId);
+//         }
+//     });
+
+//     // Group nodes by column
+//     const columnGroups = new Map();
+//     nodeColumns.forEach((column, nodeId) => {
+//         if (!columnGroups.has(column)) {
+//             columnGroups.set(column, []);
+//         }
+//         columnGroups.get(column).push(nodeId);
+//     });
+
+//     // Store original positions for smooth transition
+//     const originalPositions = new Map();
+//     nodes.forEach(node => {
+//         originalPositions.set(node.id, {
+//             x: node.pos_x,
+//             y: node.pos_y
+//         });
+//     });
+
+//     // Calculate and update positions for each node
+//     columnGroups.forEach((nodeIds, column) => {
+//         const nodesInColumn = nodeIds.length;
+//         const totalHeight = nodesInColumn * nodeHeight + (nodesInColumn - 1) * verticalGap;
+//         let startingY = (canvasHeight - totalHeight) / 2;
+
+//         nodeIds.forEach((nodeId, index) => {
+//             const newX = startX + (column * (nodeWidth + horizontalGap));
+//             const newY = startingY + (index * (nodeHeight + verticalGap));
+
+//             // Update position in editor data
+//             if (editor.drawflow.drawflow.Home.data[nodeId]) {
+//                 const node = editor.drawflow.drawflow.Home.data[nodeId];
+//                 node.pos_x = newX;
+//                 node.pos_y = newY;
+
+//                 // Update DOM element position
+//                 const nodeElement = document.getElementById(`node-${nodeId}`);
+//                 if (nodeElement) {
+//                     nodeElement.style.left = `${newX}px`;
+//                     nodeElement.style.top = `${newY}px`;
+//                 }
+
+//                 // Update all connections for this node
+//                 updateNodeConnections(nodeId);
+//             }
+//         });
+//     });
+
+//     // Force editor to update all connections
+//     editor.updateConnectionNodes("node-" + Object.keys(data)[0]);
+
+//     function updateNodeConnections(nodeId) {
+//         const node = editor.drawflow.drawflow.Home.data[nodeId];
+//         if (!node) return;
+
+//         // Update input connections
+//         Object.entries(node.inputs || {}).forEach(([inputId, input]) => {
+//             (input.connections || []).forEach(conn => {
+//                 editor.updateConnectionNodes(conn.node);
+//             });
+//         });
+
+//         // Update output connections
+//         Object.entries(node.outputs || {}).forEach(([outputId, output]) => {
+//             (output.connections || []).forEach(conn => {
+//                 editor.updateConnectionNodes(conn.node);
+//             });
+//         });
+
+//         // Force connection redraw
+//         const nodeElement = document.getElementById(`node-${nodeId}`);
+//         if (nodeElement) {
+//             const inputs = nodeElement.querySelectorAll('.input');
+//             const outputs = nodeElement.querySelectorAll('.output');
+            
+//             inputs.forEach(input => {
+//                 const inputId = input.getAttribute('data-input');
+//                 if (node.inputs && node.inputs[inputId]) {
+//                     node.inputs[inputId].connections.forEach(conn => {
+//                         editor.updateConnectionNodes(conn.node);
+//                     });
+//                 }
+//             });
+
+//             outputs.forEach(output => {
+//                 const outputId = output.getAttribute('data-output');
+//                 if (node.outputs && node.outputs[outputId]) {
+//                     node.outputs[outputId].connections.forEach(conn => {
+//                         editor.updateConnectionNodes(conn.node);
+//                     });
+//                 }
+//             });
+//         }
+//     }
+
+//     // Final update of all connections
+//     setTimeout(() => {
+//         Object.keys(data).forEach(nodeId => {
+//           console.log("Updating connections for node:", nodeId);
+//             editor.updateConnectionNodes(`node-`);
+//         });
+//         // Force a complete redraw of the editor
+//         editor.zoom=1;
+//     }, 100);
+// }
+
+
+
+function pasteNode() {
+    if (!copiedNodeData) {
+        console.log("Paste failed: No node data in clipboard");
+        return;
+    }
+
+    if (!editor) {
+        console.log("Paste failed: Editor not initialized");
+        return;
+    }
+
+    // Get the canvas element and its bounding rectangle
+    const canvas = document.getElementById("drawflow");
+    const canvasRect = canvas.getBoundingClientRect();
+
+    // Calculate the position relative to the canvas, accounting for zoom and scroll
+    const zoom = editor.zoom;
+    const x = (cursorPosition.x - canvasRect.left - editor.canvas_x) / zoom;
+    const y = (cursorPosition.y - canvasRect.top - editor.canvas_y) / zoom;
+
+    console.log("Pasting at cursor position:", {
+        cursorX: cursorPosition.x,
+        cursorY: cursorPosition.y,
+        canvasOffset: { x: editor.canvas_x, y: editor.canvas_y },
+        calculatedPosition: { x, y },
+        zoom: zoom
+    });
+
+    // Create the new node at the cursor position
+    const newNodeId = editor.addNode(
+        copiedNodeData.name,
+        copiedNodeData.inputs,
+        copiedNodeData.outputs,
+        x,
+        y,
+        copiedNodeData.class,
+        { ...copiedNodeData.data },
+        copiedNodeData.html
+    );
+
+    copiedNodeData=null
+
+    console.log("Node pasted:", {
+        newNodeId: newNodeId,
+        position: { x, y },
+        nodeData: copiedNodeData
+    });
+
+    return newNodeId;
+}
+      // Move all other functions outside DOMContentLoaded
+      function addCustomNode(
+        inputs,
+        outputs,
+        nodeName,
+        posX = null,
+        posY = null,
+        processName=null
+      ) {
+        if (!editor) return;
+        const nodeHtml = createNodeHtml(nodeName, inputs, outputs);
+
+        // Use provided position or calculate position relative to canvas
+        let x, y;
+        if (posX !== null && posY !== null) {
+          // For drag and drop: adjust position based on canvas offset
+          x = posX;
+          y = posY;
+        } else {
+          // For click: use default positioning
+          x = 100;
+          y = 100;
+        }
+
+        editor.addNode(
+          nodeName,
+          inputs,
+          outputs,
+          x,
+          y,
+          "custom-node",
+          { value: "", processName: processName },
+          nodeHtml
+        );
+      }
+
+      function saveToLocalStorage() {
+        if (!editor) return;
+
+        // First reset to top-left
+        resetToTopLeft();
+
+        // Small delay to ensure the translation is complete before saving
+        setTimeout(() => {
+          const data = editor.export();
+          const canvasState = {
+            data: data,
+            canvas_x: editor.canvas_x,
+            canvas_y: editor.canvas_y,
+            zoom: editor.zoom,
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(canvasState));
+          alert("Flow saved to local storage!");
+        }, 100);
+      }
+
+      function loadFromLocalStorage() {
+        if (!editor) return;
+        const savedData = localStorage.getItem(STORAGE_KEY);
+        if (savedData) {
+          try {
+            const state = JSON.parse(savedData);
+            editor.clear();
+            editor.import(state.data);
+
+            // First reset to top-left
+            resetToTopLeft();
+
+            // Then apply saved position if needed
+            setTimeout(() => {
+              if (
+                state.canvas_x !== undefined &&
+                state.canvas_y !== undefined
+              ) {
+                editor.translate_to(
+                  state.canvas_x,
+                  state.canvas_y,
+                  state.zoom || 1
+                );
+              }
+            }, 100);
+          } catch (err) {
+            console.error("Error loading saved data:", err);
+          }
+        }
+      }
+
+      // Helper function to create node HTML
+      function createNodeHtml(nodeName, inputs, outputs) {
+        return `
+          <div class="node-wrapper text-white">
+            <div class="node-header text-lg font-bold mb-2 draggable">${nodeName}</div>
+            <div class="node-content">
+              <input type="text" 
+                  df-value
+                  class="border rounded px-2 py-1 w-full mb-2" 
+                  placeholder="Enter value..."
+                  onclick="event.stopPropagation()"
+              />
+              <input type="text" 
+                  df-process
+                  class="border rounded px-2 py-1 w-full mb-2" 
+                  placeholder="Enter process name..."
+                  onclick="event.stopPropagation()"
+              />
+              <div class="text-sm text-white-600">
+                Inputs: ${inputs} | Outputs: ${outputs}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Previous zoom functions remain the same
+      function zoomIn() {
+        const currentZoom = editor.zoom;
+        if (currentZoom < MAX_ZOOM) {
+          editor.zoom_in();
+        }
+      }
+
+      function zoomOut() {
+        const currentZoom = editor.zoom;
+        if (currentZoom > MIN_ZOOM) {
+          editor.zoom_out();
+        }
+      }
+
+      function resetZoom() {
+        editor.zoom_reset();
+      }
+
+      // New function to handle file import
+      function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            const jsonData = JSON.parse(e.target.result);
+            editor.clear(); // Clear existing diagram
+            editor.import(jsonData);
+            alert("Flow imported successfully!");
+          } catch (error) {
+            console.error("Error importing JSON:", error);
+            alert(
+              "Error importing JSON file. Please make sure the file is valid."
+            );
+          }
+        };
+        reader.onerror = function () {
+          alert("Error reading file");
+        };
+        reader.readAsText(file);
+
+        // Reset the input so the same file can be selected again
+        event.target.value = "";
+      }
+
+      function exportToJson() {
+        const data = editor.export();
+        const dataStr = JSON.stringify(data, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "flowchart.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      // Add this function after centerCanvas
+      function resetToTopLeft(editor) {
+        if (!editor) return;
+
+        // Get all nodes to calculate the flow bounds
+        const nodes = editor?.drawflow?.drawflow?.Home?.data || {};
+
+        if (Object.keys(nodes).length === 0) {
+          // If no nodes, just reset to origin
+          editor.translate_to(0, 0, editor.zoom);
+          return;
+        }
+
+        // Calculate minimum positions
+        let minX = Infinity;
+        let minY = Infinity;
+
+        Object.values(nodes).forEach((node) => {
+          minX = Math.min(minX, node.pos_x);
+          minY = Math.min(minY, node.pos_y);
+        });
+
+        // Add a small margin
+        const margin = 50;
+
+        // Translate to position all nodes visible from top-left
+        editor.translate_to(-minX + margin, -minY + margin, editor.zoom);
+
+        console.log("Reset to top-left:", {
+          x: -minX + margin,
+          y: -minY + margin,
+        });
+      }
+
+      // Update the drag and drop functions
+      function dragNode(e) {
+        // Don't prevent default here to allow drag operation
+        e.dataTransfer.setData(
+          "nodeData",
+          JSON.stringify({
+            type: e.target.getAttribute("data-node"),
+            inputs: parseInt(e.target.getAttribute("data-inputs")),
+            outputs: parseInt(e.target.getAttribute("data-outputs")),
+            name: e.target.getAttribute("data-name"),
+            processName: e.target.getAttribute("onclick").match(/'([^']+)'\)$/)[1]
+          })
+        );
+      }
+
+      function allowDrop(e) {
+        e.preventDefault();
+      }
+
+      function drop(e) {
+        e.preventDefault();
+        try {
+          const nodeData = JSON.parse(e.dataTransfer.getData("nodeData"));
+
+          // Get mouse position relative to the canvas
+          const rect = document
+            .getElementById("drawflow")
+            .getBoundingClientRect();
+          const zoom = editor.zoom;
+
+          // Calculate position considering zoom and canvas offset
+          const x = (e.clientX - rect.left) / zoom - editor.canvas_x / zoom;
+          const y = (e.clientY - rect.top) / zoom - editor.canvas_y / zoom;
+
+          // Add the node with the process name directly from nodeData
+          addCustomNode(
+            nodeData.inputs, 
+            nodeData.outputs, 
+            nodeData.name, 
+            x, 
+            y,
+            nodeData.processName
+          );
+        } catch (err) {
+          console.error("Error dropping node:", err);
+        }
+      }
+    </script>
+
+    <style>
+      #drawflow {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background-size: 25px 25px;
+        text-align:initial;
+        background-image: linear-gradient(
+            to right,
+            rgba(0, 0, 0, 0.1) 1px,
+            transparent 1px
+          ),
+          linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+      }
+
+      .drawflow .drawflow-node {
+        background: #2d3436;
+        border: 2px solid #2d3436;
+        border-radius: 8px;
+        min-width: 200px;
+        position: absolute;
+        z-index: 2;
+        cursor: move;
+        user-select: none;
+        transition: border 0.3s ease;
+      }
+
+      .drawflow .connection {
+        position: absolute;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .drawflow .connection .main-path {
+        fill: none;
+        stroke-width: 5px;
+        stroke: #4ea9ff;
+      }
+
+      /* Add these to your existing styles */
+      [draggable="true"] {
+        cursor: move;
+        user-select: none;
+        -webkit-user-drag: element;
+      }
+
+      [draggable="true"]:hover {
+        opacity: 0.8;
+        transform: scale(1.02);
+        transition: all 0.2s ease;
+      }
+
+      [draggable="true"]:active {
+        opacity: 0.6;
+        transform: scale(0.98);
+      }
+
+      /* Add to your existing styles */
+      .drawflow-node {
+        transition: all 0.3s ease;
+      }
+
+      .drawflow-node.selected {
+        transform: scale(1.05);
+      }
+
+      [draggable="true"] {
+        cursor: grab;
+        user-select: none;
+        -webkit-user-drag: element;
+      }
+
+      [draggable="true"]:active {
+        cursor: grabbing;
+      }
+
+      .node-wrapper {
+        pointer-events: none;
+      }
+
+      .node-wrapper input {
+        pointer-events: all;
+      }
+
+      .drawflow .drawflow-node.selected {
+        border: 2px solid #00ff9d;
+        transform: scale(1.05);
+      }
+
+      .drawflow .drawflow-node .input,
+      .drawflow .drawflow-node .output {
+        cursor: pointer;
+      }
+
+      .node-wrapper {
+        pointer-events: all !important;
+      }
+
+      .node-wrapper input {
+        pointer-events: all !important;
+        cursor: text;
+      }
+
+      .drawflow-node .node-header {
+        cursor: move;
+        user-select: none;
+      }
+
+      .drawflow {
+        user-select: none;
+        position: relative;
+      }
+
+      .drawflow .connection {
+        pointer-events: none;
+      }
+
+      .drawflow .connection .main-path {
+        pointer-events: all;
+        cursor: pointer;
+      }
+
+      /* Update these styles */
+      .drawflow .drawflow-node {
+        background: #2d3436;
+        border: 2px solid #2d3436;
+        border-radius: 8px;
+        min-width: 200px;
+        position: absolute;
+        z-index: 2;
+        cursor: move;
+        user-select: none;
+        transition: border 0.3s ease;
+      }
+
+      .drawflow .drawflow-node.selected {
+        border: 2px solid #00ff9d !important;
+        box-shadow: 0 0 8px rgba(0, 255, 157, 0.5);
+      }
+
+      /* Remove conflicting transform styles */
+      .drawflow-node.selected {
+        transform: none;
+      }
+
+      [draggable="true"] {
+        cursor: grab;
+      }
+
+      [draggable="true"]:active {
+        cursor: grabbing;
+      }
+
+      .drawflow {
+        cursor: grab;
+      }
+
+      .drawflow:active {
+        cursor: grabbing;
+      }
+
+      .node-wrapper {
+        pointer-events: all;
+      }
+
+      .node-wrapper input {
+        pointer-events: all;
+        cursor: text;
+      }
+
+      /* Update/add these styles */
+      .drawflow .drawflow-node {
+        background: #2d3436;
+        border: 2px solid #2d3436;
+        border-radius: 8px;
+        min-width: 200px;
+        position: absolute;
+        z-index: 2;
+        cursor: move;
+        user-select: none;
+        transition: border 0.3s ease;
+      }
+
+      .drawflow .drawflow-node .input,
+      .drawflow .drawflow-node .output {
+        cursor: crosshair !important;
+        pointer-events: all !important;
+        position: relative;
+        z-index: 3;
+        width: 18px;
+        height: 18px;
+        background: #4ea9ff;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        transition: all 0.3s ease;
+      }
+
+      .drawflow .drawflow-node .input:hover,
+      .drawflow .drawflow-node .output:hover {
+        background: #ff4e4e;
+        transform: scale(1.2);
+        box-shadow: 0 0 8px rgba(255, 78, 78, 0.5);
+      }
+
+      .drawflow .drawflow-node .node-content {
+        pointer-events: all;
+        cursor: default;
+      }
+
+      .drawflow .drawflow-node {
+        cursor: default;
+      }
+
+      .drawflow .drawflow-node .node-header {
+        cursor: move;
+        cursor: grab;
+        user-select: none;
+      }
+
+      .drawflow .drawflow-node .node-header:active {
+        cursor: grabbing;
+      }
+
+      .node-wrapper input {
+        cursor: text !important;
+        pointer-events: all !important;
+      }
+
+      .node-wrapper {
+        pointer-events: none;
+      }
+
+      .node-wrapper .node-header,
+      .node-wrapper input,
+      .drawflow-node .input,
+      .drawflow-node .output {
+        pointer-events: all !important;
+      }
+
+      .connection-line {
+        stroke: #4ea9ff;
+        stroke-width: 3px;
+        stroke-dasharray: 5;
+        animation: dash 1s linear infinite;
+      }
+
+      @keyframes dash {
+        to {
+          stroke-dashoffset: -10;
+        }
+      }
+    </style>
+  </body>
+</html>
